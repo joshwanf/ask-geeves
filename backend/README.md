@@ -1,31 +1,58 @@
 # BACKEND
-## Setting up
-## ``.env`` file
-### mod-6-project/backend/.env
+
+## Set up
+
+### `.env` file
+
+./backend/.env
+
 ```
 SECRET_KEY=123456
 DATABASE_URL=sqlite:///dev.db
 ```
 
-## Set your Virtual Environment
+### Virtual environment
+
 Python 3.9.6 ('.vent':Pipenv)
 
-interpreter path   ``./mod-6-project/backend/.venv/bin/python``
+Using `uv`
 
-## Install pipenv dependencies
-```pipenv install && pipenv shell```
-
-## Start Server
-```pipenv run flask run```
-
-## Create database and seed  (when there's no dev.db)
-```pipenv run i```
-
-## Regenerate database
-```pipenv run db```
-### other quick commands
 ```
-[scripts] 
+uv venv .venv
+source .venv/bin/activate
+```
+
+### Install pipenv dependencies
+
+```shell
+# pipenv install && pipenv shell
+uv pip install -r requirements.txt
+```
+
+## Usage
+
+- Start Server
+
+  ```
+  pipenv run flask run
+  ```
+
+- Create database and seed (when there's no dev.db)
+
+  ```
+  pipenv run i
+  ```
+
+- Regenerate database
+
+  ```
+  pipenv run db
+  ```
+
+- Other quick commands
+
+```
+[scripts]
 
 pipenv run + " "
 
@@ -36,68 +63,70 @@ i = "sh -c 'pipenv run u && flask seed && flask run'"
 db = "sh -c 'pipenv run d && pipenv run u && flask seed && flask run'"
 ```
 
-# Setting up local ```PostgreSQL``` database
+## Setting up local `PostgreSQL` database
 
-## Install PostgreSQL
+> Note: Instructions most likely for WSL users
 
+1. Install PostgreSQL
 
-```sudo apt update```
+   `sudo apt update`
 
-```sudo apt install postgresql postgresql-contrib```
+   `sudo apt install postgresql postgresql-contrib`
 
-## Install Psycorpg2-Binary (-binary for local use)
+1. Install Psycorpg2-Binary (-binary for local use)
 
-### This should be handled automatically by pipenv install reading pipfile.
+1. This should be handled automatically by pipenv install reading pipfile.
 
-Manual setup (shouldn't be necessary):
+   Manual setup (shouldn't be necessary):
 
-```cd backend/```
+   ```shell
+   cd backend/
+   pipenv shell    # Ensure you're in the venv
+   pipenv install psycopg2-binary
+   ```
 
-```pipenv shell```  Ensure you're in the venv
+1. Setup up PSQL User and DB
 
-```pipenv install psycopg2-binary```
+1. Log in to PSQL as the default 'postgres' user
 
+   ```shell
+   sudo -i -u postgres
+   psql
+   ```
 
-## Setup up PSQL User and DB
+   ```sql
+   -- Create PSQL user (skip if have dedicated user already)
+   CREATE USER username WITH PASSWORD password;
+   -- Grant User permissions to create databases
+   ALTER USER username CREATEDB;
 
+   -- Create a new database
+   CREATE DATABASE ask_geeves_dev OWNER username;
+   -- Grant user database owner privleges (needed to access db via psql terminal)
+   ALTER DATABASE ask_geeves_dev OWNER TO username;
 
+   -- Exit psql
+   \q
+   -- Likely need to CTRL+D to get back out to base terminal agin.
+   ```
 
-### Log in to PSQL as the default 'postgres' user
+1. Verify Database was created:
 
-```sudo -i -u postgres```
+   ```shell
+   psql -U username -d ask_geeves_dev
+   ```
 
-```psql```
-
-```sql
-    -- Create PSQL user (skip if have dedicated user already)
-CREATE USER username WITH PASSWORD password;
-    -- Grant User permissions to create databases
-ALTER USER username CREATEDB;
-
-    -- Create a new database
-CREATE DATABASE ask_geeves_dev OWNER username;
-    -- Grant user database owner privleges (needed to access db via psql terminal)
-ALTER DATABASE ask_geeves_dev OWNER TO username;
-
-    -- Exit psql
-\q
-    -- Likely need to CTRL+D to get back out to base terminal agin.
-```
-
-### Verify Database was created:
-
-```psql -U username -d ask_geeves_dev```
-
-Should see asked_geeves_dev=> in terminal
+   Should see asked_geeves_dev=> in terminal
 
 ## Configure the Flask App for PSQL Database
+
 ### Most of this will be done already. Modifying the DATABASE_TYPE and POSTGRES_URL in .env should be the only step required.
 
 ```python
     # backend/.env
 SECRET_KEY=84ae690353f3735f9f2aa1b5ffef0a01d967c909b9d0c796
     # We'll change this value between sqlite and postgres depending on what we're testing. For 99.9% of dev purpose, leave it as sqlite
-DATABASE_TYPE=postgres 
+DATABASE_TYPE=postgres
 DATABASE_URL=sqlite:///dev.db
     # User username/password values from the user you just created
 POSTGRES_URL=postgresql://username:password@localhost/ask_geeves_dev
@@ -123,7 +152,7 @@ class DevConfig(Config):
         else os.getenv("DATABASE_URL", "sqlite:///dev.db")
     )
 
-    
+
     # ProdConfig won't be used until production deployment, and subject to change.
 class ProdConfig(Config):
     SQLALCHEMY_DATABASE_URI = os.getenv("POSTGRES_URL")
@@ -149,7 +178,7 @@ from flask_wtf.csrf import CSRFProtect
 
 app = Flask(__name__)
 # Sets env based on FLASK_ENV, default='development'
-env = os.getenv("FLASK_ENV", "development") 
+env = os.getenv("FLASK_ENV", "development")
 # Applies config based on env value, default='development'
 config_class = config_dict.get(env, "development")
 app.config.from_object(config_class)
@@ -162,25 +191,23 @@ migrate = Migrate(app, db)
 
 ## Create Initial Migrations
 
-
 ### Skip to upgrade if migrations were done previously with sqlite
 
-```flask db init```
+`flask db init`
 
-```flask db migrate -m 'initial migration'```
+`flask db migrate -m 'initial migration'`
 
-```flask db upgrade```
+`flask db upgrade`
 
-```flask seed``` Seeds psql db with seeder data (considering moving this step to be included in previous command)
-
+`flask seed` Seeds psql db with seeder data (considering moving this step to be included in previous command)
 
 ## Verify Database Connection
 
 ### Log in to PSQL Database via user we created earlier
 
-```psql -U username -d ask_geeves_dev```
+`psql -U username -d ask_geeves_dev`
+
 ```sql
 \dt -- Should see tables
 SELECT * FROM comments -- Should see all comments if seeding & privilege grant was successful
 ```
-

@@ -3,7 +3,8 @@ import Markdoc from "@markdoc/markdoc"
 import "prismjs"
 import "prismjs/themes/prism-tomorrow.css"
 
-import Prism from "react-prism"
+// import Prism from "react-prism"
+import { Highlight, themes } from "prism-react-renderer"
 
 interface FenceProps {
   children: JSX.Element
@@ -11,9 +12,27 @@ interface FenceProps {
 }
 export function Fence({ children, language }: FenceProps) {
   return (
-    <Prism key={language} component="pre" className={`language-${language}`}>
-      {children}
-    </Prism>
+    <Highlight
+      theme={themes.okaidia}
+      code={children.toString()}
+      language={language}
+    >
+      {({ className, style, tokens, getLineProps, getTokenProps }) => (
+        <pre style={style}>
+          {tokens.map((line, i) => (
+            <div key={i} {...getLineProps({ line })}>
+              <span>{i + 1}</span>
+              {line.map((token, key) => (
+                <span key={key} {...getTokenProps({ token })} />
+              ))}
+            </div>
+          ))}
+        </pre>
+      )}
+    </Highlight>
+    // <Prism key={language} component="pre" className={`language-${language}`}>
+    //   {children}
+    // </Prism>
   )
 }
 
